@@ -43,7 +43,6 @@ productsRouter.get('/:pid', async (req,res) => {
 productsRouter.put("/:pid", async (req,res) => { 
     const { pid } = req.params;
     const body = req.body
-    console.log(body);
     try {
         res.status(200).json(await pm.updateProduct({id: pid, ...body}))
     } catch (error) {
