@@ -1,12 +1,16 @@
-import ProductManager from "./classes/ProductManager.js"
+import ProductManager from "./dao/filesystem/models/ProductManager.js";
 import { Server } from "socket.io";
 import {__dirname} from "./utils.js";
 import express from "express";
 import handlebars from "express-handlebars"
+import mongoose from 'mongoose';
 import routerApi from "./routes/index.js";
 
 const PORT = 8080
 const myApp = express()
+
+//Añado esto para poder usar los elementos publicos
+myApp.use(express.static(__dirname + "/public"))
 
 //Product manager para hacer cambios en Socket
 const pm = new ProductManager()
@@ -24,11 +28,23 @@ myApp.set("view engine", "handlebars")
 //Añado esto para poder usar los elementos publicos
 myApp.use(express.static(__dirname + "/public"))
 
-routerApi(myApp);
-
+//Conexion a servidor
 const httpServer = myApp.listen(PORT, () => {
     console.log("Mi port:" + PORT)
 })
+
+//MongoDB
+const connectMongoDB = async () => {
+    try {
+        await mongoose.connect("mongodb+srv://NTorres:1234sabe@codercluster.jthf60w.mongodb.net/ecommerce?retryWrites=true&w=majority")
+        console.log("Conectado a MongoDB via Mongoose");
+    } catch (error) {
+        console.error("No se pudo conectad a la BD usando Mongoose: " + error);
+        process.exit();
+    }
+};
+
+connectMongoDB();
 
 //Creamos el server para sockets
 const socketServer = new Server(httpServer);
@@ -56,3 +72,10 @@ socketServer.on("connection", socket => {
     
     
 })
+
+
+
+
+
+//Usamos las rutas
+routerApi(myApp);

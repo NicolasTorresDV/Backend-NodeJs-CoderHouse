@@ -1,36 +1,90 @@
-import CartManager from "../classes/CartManager.js";
 import {Router} from "express";
+import { cartsModel } from "./../dao/db/models/cart.model.js"
 
-const cartsRouter = Router();
+const router = Router();
 
-const cm = new CartManager()
-
-cartsRouter.post("/", async (req,res) => {
+router.post("/", async (req,res) => {
     try {
-        let newCart = await cm.addCart();
+        let newCart = await cartsModel.create({})
         res.status(201).json(newCart)
     } catch (error) {
         res.status(500).json({message: error.message});
     }
 })
 
-cartsRouter.post("/:cid/product/:pid", async (req,res) => {
-    const { cid , pid } = req.params;
+router.put("/:cid", async (req,res) => {
+    const { cid } = req.params;
+    let body = req.body
     try {
-        res.status(200).json( await cm.addProductToCart(parseInt(cid),parseInt(pid)))
+        res.status(200).json( await cartsModel.updateOne({_id:cid}, {products: body}))
     } catch (error) {
         res.status(500).json({message: error.message});
     }
 })
 
-cartsRouter.get('/:cid', async (req,res) => {
+router.get('/:cid', async (req,res) => {
     const { cid } = req.params;
     try {
-        res.status(200).json( await cm.getCartById(parseInt(cid)))
+        res.status(200).json( await cartsModel.findById(cid).populate("products.product"))
     } catch (error) {
         res.status(500).json({message: error.message});
     }
-    
 });
 
-export default cartsRouter
+router.delete("/:cid", async (req,res) => {
+    const { cid } = req.params;
+    try {
+        res.status(200).json(await cartsModel.updateOne({_id:cid}, {products: []}))
+    } catch (error) {
+        res.status(500).json({message: error.message});
+    }
+})
+
+router.post("/:cid/product/:pid", async (req,res) => {
+    const { cid , pid } = req.params;
+    try {
+        
+        //Tengo que usar el elemMatch para encontrar un valor en un Array con distintos valores (O sea JSON)
+        let productAlreadyInCart = await cartsModel.find({products: {$elemMatch: {product: pid}}})
+        
+        let auxCart = await cartsModel.findById(cid)
+        if (productAlreadyInCart == 0) {
+            auxCart.products.push({product:pid, quantity: 1})
+            res.status(200).json( await cartsModel.updateOne({_id:cid}, auxCart))
+        }else{
+            let updateProduct = auxCart.products.filter(oneProd => oneProd.product == pid)
+
+            //Este metodo para actualizar el array lo encontre en ChatGPT
+            res.status(200).json( await cartsModel.findOneAndUpdate({_id:cid, "products.product": pid}, {$set: {"products.$.quantity": updateProduct[0].quantity + 1}}, { new: true }))
+        }
+
+    } catch (error) {
+        res.status(500).json({message: error.message});
+    }
+})
+
+router.delete("/:cid/products/:pid", async (req,res) => {
+    try {
+        const { cid , pid } = req.params;
+        let result = await cartsModel.findByIdAndUpdate({_id:cid},
+            { $pull: { products: {product: pid}} } ,
+            { new: true }
+            );
+        res.status(201).json(result)
+    } catch (error) {
+        res.status(500).json({message: error.message});
+    }
+})
+
+router.put("/:cid/products/:pid", async (req,res) => {
+    const { cid , pid } = req.params;
+    let body = req.body
+    try {
+        res.status(200).json( await cartsModel.findOneAndUpdate({_id:cid, "products.product": pid}, {$set: {"products.$.quantity": parseInt(body.quantity)}}, { new: true }))
+    } catch (error) {
+        res.status(500).json({message: error.message});
+    }
+})
+
+
+export default router;

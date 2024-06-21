@@ -1,4 +1,4 @@
-import Cart from "./Cart.js"
+import Cart from "./classes/Cart.js"
 import ProductManager from "./ProductManager.js"
 import fs from "fs"
 

@@ -1,5 +1,5 @@
-import Product from "./Product.js";
-import {__dirname} from "../utils.js";
+import Product from "./classes/Product.js";
+import {__dirname} from "../../../utils.js";
 import { fileURLToPath } from 'url';
 import fs from "fs";
 
